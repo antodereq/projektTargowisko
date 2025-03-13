@@ -1,0 +1,53 @@
+body {
+    background-color: #f8f9fa;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    background-color: #343a40;
+    color: white;
+    padding: 15px 0;
+    text-align: center;
+}
+
+.map-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#mapa {
+    width: 100%;
+    height: auto;
+    cursor: grab;
+}
+
+/* Przezroczystość dla figur */
+path {
+    opacity: 0.3;
+    transition: opacity 0.3s, fill 0.3s;
+}
+
+path {
+    transition: fill 0.3s ease, stroke 0.3s ease; /* Płynna zmiana koloru i border */
+}
+.controls {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.move-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.move-buttons button {
+    margin: 0 5px;
+}
