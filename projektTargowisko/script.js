@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
             e.preventDefault();  // Zapobiega domyślnemu zachowaniu, np. zaznaczaniu tekstu
 
             // Pobieramy pozycję kontenera na stronie
-            let rect = mapContainer.getBoundingClientRect();
+            let rect = mapContainer.getBoundingClientRect(); // działa też gdy zamiast mapContainer dam mapaObject
 
             // Obliczamy punkt początkowy, uwzględniając pozycję kontenera
             start = { x: e.clientX - rect.left - pointX, y: e.clientY - rect.top - pointY };
@@ -31,16 +31,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         window.addEventListener("mousemove", function (e) {
-            if (!panning) return;  // Jeśli panning nie jest aktywowany, nic nie rób // jeśli zakomentuję ten fragment kodu, to mapa będzie cały czas śledzić kursor
+            if (!panning) return;  // Jeśli panning nie jest aktywowany, nic nie rób
 
             // Pobieramy pozycję kontenera na stronie
             let rect = mapContainer.getBoundingClientRect();
+
+            // Sprawdzamy, czy kursor jest wewnątrz obszaru mapy (kontenera)
+            if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+                return;  // Jeśli kursor jest poza mapą, nie przesuwaj jej
+            }
 
             // Obliczamy nowe współrzędne przesunięcia, uwzględniając przesunięcie kontenera
             pointX = e.clientX - rect.left - start.x;
             pointY = e.clientY - rect.top - start.y;
 
-            setTransform();  // Ustawiamy nową transformację dla mapy
+            setTransform();
         });
 
         // Blokowanie przewijania strony przy scrollowaniu nad mapą
