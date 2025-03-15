@@ -11,41 +11,40 @@ document.addEventListener("DOMContentLoaded", function () {
             svgElement.setAttribute("transform", `translate(${pointX}, ${pointY}) scale(${scale})`);
         }
 
-        // Przesuwanie mapy myszką
+        // Przesuwanie mapy zaczyna się tylko wtedy, gdy trzymasz lewy przycisk myszy
         svgElement.addEventListener("mousedown", function (e) {
             e.preventDefault();  // Zapobiega domyślnemu zachowaniu, np. zaznaczaniu tekstu
 
             // Pobieramy pozycję kontenera na stronie
-            let rect = mapContainer.getBoundingClientRect(); // działa też gdy zamiast mapContainer dam mapaObject
+            let rect = mapContainer.getBoundingClientRect();
 
             // Obliczamy punkt początkowy, uwzględniając pozycję kontenera
             start = { x: e.clientX - rect.left - pointX, y: e.clientY - rect.top - pointY };
 
-            panning = true;  // Ustawiamy panning na true, aby rozpocząć przesuwanie
+            panning = true;  // Rozpoczynamy przesuwanie
             svgElement.style.cursor = "grabbing";  // Zmiana kursora
         });
 
-        window.addEventListener("mouseup", function () {
-            panning = false;  // Wyłączamy panning
-            svgElement.style.cursor = "grab";  // Przywracamy kursor
-        });
-
-        window.addEventListener("mousemove", function (e) {
+        // Obsługa ruchu myszy podczas przesuwania, jeśli przycisk jest wciśnięty
+        svgElement.addEventListener("mousemove", function (e) {
             if (!panning) return;  // Jeśli panning nie jest aktywowany, nic nie rób
 
             // Pobieramy pozycję kontenera na stronie
             let rect = mapContainer.getBoundingClientRect();
-
-            // Sprawdzamy, czy kursor jest wewnątrz obszaru mapy (kontenera)
-            if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-                return;  // Jeśli kursor jest poza mapą, nie przesuwaj jej
-            }
 
             // Obliczamy nowe współrzędne przesunięcia, uwzględniając przesunięcie kontenera
             pointX = e.clientX - rect.left - start.x;
             pointY = e.clientY - rect.top - start.y;
 
             setTransform();
+        });
+
+        // Kończenie przesuwania mapy, kiedy puszczamy przycisk myszy
+        window.addEventListener("mouseup", function () {
+            if (panning) {
+                panning = false;  // Wyłączamy panning
+                svgElement.style.cursor = "grab";  // Przywracamy kursor
+            }
         });
 
         // Blokowanie przewijania strony przy scrollowaniu nad mapą
