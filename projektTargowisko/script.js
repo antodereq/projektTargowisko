@@ -1,7 +1,20 @@
 document.addEventListener("DOMContentLoaded", function () {
     let mapaObject = document.getElementById("mapa");
     let mapContainer = document.querySelector(".map-container");
-    let scale = 1, pointX = 0, pointY = 0, panning = false, start = { x: 0, y: 0 };
+    let scale = 1.0, pointX = 0, pointY = 0, panning = false, start = { x: 0, y: 0 };
+
+    // Tworzenie i dodanie elementu do wyświetlania skali
+    let scaleDisplay = document.createElement("div");
+    scaleDisplay.style.position = "absolute";
+    scaleDisplay.style.top = "10px";
+    scaleDisplay.style.left = "10px";
+    scaleDisplay.style.background = "rgba(0, 0, 0, 0.7)";
+    scaleDisplay.style.color = "white";
+    scaleDisplay.style.padding = "5px 10px";
+    scaleDisplay.style.borderRadius = "5px";
+    scaleDisplay.style.fontSize = "14px";
+    scaleDisplay.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+    mapContainer.appendChild(scaleDisplay);
 
     mapaObject.addEventListener("load", function () {
         let svgDocument = mapaObject.contentDocument;
@@ -9,6 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function setTransform() {
             svgElement.setAttribute("transform", `translate(${pointX}, ${pointY}) scale(${scale})`);
+            scaleDisplay.textContent = `Zoom: ${Math.round(scale * 100)}%`;
         }
 
         function updateMapLimits() {
@@ -16,234 +30,96 @@ document.addEventListener("DOMContentLoaded", function () {
             let svgWidth = svgElement.getBBox().width * scale;
             let svgHeight = svgElement.getBBox().height * scale;
 
-            // Ograniczenie ruchu w prawo (lewy brzeg mapy nie może przekroczyć prawej granicy kontenera)
-            if (pointX > 0) {
-                pointX = 0;
-            }
+            let minX = Math.min(0, rect.width - svgWidth);
+            let maxX = Math.max(0, svgWidth - rect.width);
+            let minY = Math.min(0, rect.height - svgHeight);
+            let maxY = Math.max(0, svgHeight - rect.height);
 
-            // Ograniczenie ruchu w lewo (prawy brzeg mapy nie może przekroczyć lewej granicy kontenera)
-            if (pointX < rect.width - svgWidth) {
-                pointX = rect.width - svgWidth;
-            }
-
-            // Ograniczenie ruchu w górę
-            if (pointY > 0) {
-                pointY = 0;
-            }
-
-            // Ograniczenie ruchu w dół
-            if (pointY < rect.height - svgHeight) {
-                pointY = rect.height - svgHeight;
-            }
+            pointX = Math.min(Math.max(pointX, minX), maxX);
+            pointY = Math.min(Math.max(pointY, minY), maxY);
         }
 
-        // Przesuwanie mapy zaczyna się tylko wtedy, gdy trzymasz lewy przycisk myszy
         svgElement.addEventListener("mousedown", function (e) {
-            e.preventDefault();  // Zapobiega domyślnemu zachowaniu, np. zaznaczaniu tekstu
-
-            // Pobieramy pozycję kontenera na stronie
+            e.preventDefault();
             let rect = mapContainer.getBoundingClientRect();
-
-            // Obliczamy punkt początkowy, uwzględniając pozycję kontenera
             start = { x: e.clientX - rect.left - pointX, y: e.clientY - rect.top - pointY };
-
-            panning = true;  // Rozpoczynamy przesuwanie
-            svgElement.style.cursor = "grabbing";  // Zmiana kursora
+            panning = true;
+            svgElement.style.cursor = "grabbing";
         });
 
-        // Obsługa ruchu myszy podczas przesuwania, jeśli przycisk jest wciśnięty
         svgElement.addEventListener("mousemove", function (e) {
-            if (!panning) return;  // Jeśli panning nie jest aktywowany, nic nie rób
-
-            // Pobieramy pozycję kontenera na stronie
+            if (!panning) return;
             let rect = mapContainer.getBoundingClientRect();
-
-            // Obliczamy nowe współrzędne przesunięcia, uwzględniając przesunięcie kontenera
             pointX = e.clientX - rect.left - start.x;
             pointY = e.clientY - rect.top - start.y;
-
-            // Aktualizujemy limity mapy
             updateMapLimits();
             setTransform();
         });
 
-        // Kończenie przesuwania mapy, kiedy puszczamy przycisk myszy
         svgElement.addEventListener("mouseup", function () {
-            if (panning) {
-                panning = false;  // Wyłączamy panning
-                svgElement.style.cursor = "grab";  // Przywracamy kursor
-            }
+            panning = false;
+            svgElement.style.cursor = "grab";
         });
 
-        // Blokowanie przewijania strony przy scrollowaniu nad mapą
         mapContainer.addEventListener("wheel", function (e) {
             e.preventDefault();
         }, { passive: false });
 
-        // Zoomowanie mapy rolką myszy
         svgElement.addEventListener("wheel", function (e) {
             e.preventDefault();
-            let zoomFactor = (e.deltaY > 0) ? 0.9 : 1.1;
-            scale *= zoomFactor;
+            let zoomChange = (e.deltaY > 0) ? -0.1 : 0.1;
+            scale += zoomChange;
 
-            // Ograniczamy zoom, żeby mapa nie była za mała ani za duża
-            if (scale < 0.1) scale = 0.1;
+            if (scale < 1) scale = 1;
             if (scale > 5) scale = 5;
 
+            updateMapLimits();
             setTransform();
         }, { passive: false });
 
-        // Przycisk zoom-in
         document.getElementById("zoomIn").addEventListener("click", function () {
-            scale *= 1.1;
+            scale += 0.1;
             if (scale > 5) scale = 5;
-            setTransform();
-        });
-
-        // Przycisk zoom-out
-        document.getElementById("zoomOut").addEventListener("click", function () {
-            scale *= 0.9;
-            if (scale < 0.1) scale = 0.1;
-            setTransform();
-        });
-
-        // Resetowanie mapy
-        document.getElementById("reset").addEventListener("click", function () {
-            scale = 1;
-            pointX = 0;
-            pointY = 0;
-            setTransform();
-        });
-
-        // Przesuwanie mapy przyciskami
-        document.getElementById("moveUp").addEventListener("click", function () {
-            pointY -= 20;  // Przesuwamy mapę w górę
             updateMapLimits();
             setTransform();
+        });
+
+        document.getElementById("zoomOut").addEventListener("click", function () {
+            scale -= 0.1;
+            if (scale < 1) scale = 1;
+            updateMapLimits();
+            setTransform();
+        });
+
+        document.getElementById("reset").addEventListener("click", function () {
+            scale = 1.0;
+            pointX = 0;
+            pointY = 0;
+            updateMapLimits();
+            setTransform();
+        });
+
+        function moveMap(dx, dy) {
+            pointX += dx;
+            pointY += dy;
+            updateMapLimits();
+            setTransform();
+        }
+
+        document.getElementById("moveUp").addEventListener("click", function () {
+            moveMap(0, -20);
         });
 
         document.getElementById("moveDown").addEventListener("click", function () {
-            pointY += 20;  // Przesuwamy mapę w dół
-            updateMapLimits();
-            setTransform();
+            moveMap(0, 20);
         });
 
         document.getElementById("moveLeft").addEventListener("click", function () {
-            pointX -= 20;  // Przesuwamy mapę w lewo
-            updateMapLimits();
-            setTransform();
+            moveMap(-20, 0);
         });
 
         document.getElementById("moveRight").addEventListener("click", function () {
-            pointX += 20;  // Przesuwamy mapę w prawo
-            updateMapLimits();
-            setTransform();
+            moveMap(20, 0);
         });
     });
 });
-
-
-// document.addEventListener("DOMContentLoaded", function () {
-//     let mapaObject = document.getElementById("mapa");
-//     let mapContainer = document.querySelector(".map-container");
-//     let scale = 1, pointX = 0, pointY = 0, panning = false, start = { x: 0, y: 0 };
-
-//     mapaObject.addEventListener("load", function () {
-//         let svgDocument = mapaObject.contentDocument;
-//         let svgElement = svgDocument.querySelector("svg");
-
-//         function setTransform() {
-//             svgElement.setAttribute("transform", `translate(${pointX}, ${pointY}) scale(${scale})`);
-//         }
-
-//         // Przesuwanie mapy zaczyna się tylko wtedy, gdy trzymasz lewy przycisk myszy
-//         svgElement.addEventListener("mousedown", function (e) {
-//             e.preventDefault();  // Zapobiega domyślnemu zachowaniu, np. zaznaczaniu tekstu
-
-//             // Pobieramy pozycję kontenera na stronie
-//             let rect = mapContainer.getBoundingClientRect();
-
-//             // Obliczamy punkt początkowy, uwzględniając pozycję kontenera
-//             start = { x: e.clientX - rect.left - pointX, y: e.clientY - rect.top - pointY };
-
-//             panning = true;  // Rozpoczynamy przesuwanie
-//             svgElement.style.cursor = "grabbing";  // Zmiana kursora
-//         });
-
-//         // Obsługa ruchu myszy podczas przesuwania, jeśli przycisk jest wciśnięty
-//         svgElement.addEventListener("mousemove", function (e) {
-//             if (!panning) return;  // Jeśli panning nie jest aktywowany, nic nie rób
-
-//             // Pobieramy pozycję kontenera na stronie
-//             let rect = mapContainer.getBoundingClientRect();
-
-//             // Obliczamy nowe współrzędne przesunięcia, uwzględniając przesunięcie kontenera
-//             pointX = e.clientX - rect.left - start.x;
-//             pointY = e.clientY - rect.top - start.y;
-
-//             setTransform();
-//         });
-
-//         // Kończenie przesuwania mapy, kiedy puszczamy przycisk myszy
-//         svgElement.addEventListener("mouseup", function () {
-//             if (panning) {
-//                 panning = false;  // Wyłączamy panning
-//                 svgElement.style.cursor = "grab";  // Przywracamy kursor
-//             }
-//         });
-
-//         // Blokowanie przewijania strony przy scrollowaniu nad mapą
-//         mapContainer.addEventListener("wheel", function (e) {
-//             e.preventDefault();
-//         }, { passive: false });
-
-//         // Zoomowanie mapy rolką myszy
-//         svgElement.addEventListener("wheel", function (e) {
-//             e.preventDefault();
-//             let zoomFactor = (e.deltaY > 0) ? 0.9 : 1.1;
-//             scale *= zoomFactor;
-//             setTransform();
-//         }, { passive: false });
-
-//         // Przycisk zoom-in
-//         document.getElementById("zoomIn").addEventListener("click", function () {
-//             scale *= 1.1;
-//             setTransform();
-//         });
-
-//         // Przycisk zoom-out
-//         document.getElementById("zoomOut").addEventListener("click", function () {
-//             scale *= 0.9;
-//             setTransform();
-//         });
-
-//         // Resetowanie mapy
-//         document.getElementById("reset").addEventListener("click", function () {
-//             scale = 1;
-//             pointX = 0;
-//             pointY = 0;
-//             setTransform();
-//         });
-
-//         // Przesuwanie mapy przyciskami
-//         document.getElementById("moveUp").addEventListener("click", function () {
-//             pointY -= 20;  // Przesuwamy mapę w górę
-//             setTransform();
-//         });
-
-//         document.getElementById("moveDown").addEventListener("click", function () {
-//             pointY += 20;  // Przesuwamy mapę w dół
-//             setTransform();
-//         });
-
-//         document.getElementById("moveLeft").addEventListener("click", function () {
-//             pointX -= 20;  // Przesuwamy mapę w lewo
-//             setTransform();
-//         });
-
-//         document.getElementById("moveRight").addEventListener("click", function () {
-//             pointX += 20;  // Przesuwamy mapę w prawo
-//             setTransform();
-//         });
-//     });
-// });
